@@ -23,24 +23,24 @@ pub fn parse(input: &str) -> Value {
 }
 
 fn value(input: &str) -> (Value, &str) {
-    let input = eat_whitespace(input); // Skip leading whitespace for this value
+    let input = eat_whitespace(input);
 
-    if input.starts_with("false") {
-        return (Value::Boolean(false), &input["false".len()..]);
+    if let Some(rest) = input.strip_prefix("false") {
+        return (Value::Boolean(false), rest);
     }
-    if input.starts_with("null") {
-        return (Value::Null, &input["null".len()..]);
+    if let Some(rest) = input.strip_prefix("null") {
+        return (Value::Null, rest);
     }
-    if input.starts_with("true") {
-        return (Value::Boolean(true), &input["true".len()..]);
+    if let Some(rest) = input.strip_prefix("true") {
+        return (Value::Boolean(true), rest);
     }
     if input.starts_with('{') {
         let v = object(input);
-        return (Value::Object(v.0), v.1); // object will return (HashMap, &str)
+        return (Value::Object(v.0), v.1);
     }
     if input.starts_with('[') {
         let v = array(input);
-        return (Value::Array(v.0), v.1); // object will return (HashMap, &str)
+        return (Value::Array(v.0), v.1);
     }
     if input.starts_with('"') {
         let v = string(input);
@@ -51,7 +51,7 @@ fn value(input: &str) -> (Value, &str) {
         return (Value::Number(v.0), v.1);
     }
 
-    panic!("Unexpected token: '{}'", input); // If nothing matches
+    panic!("Unexpected token: '{}'", input);
 }
 
 fn eat_whitespace(input: &str) -> &str {
@@ -127,7 +127,7 @@ fn array(input: &str) -> (Vec<Value>, &str) {
 }
 
 fn string(input: &str) -> (String, &str) {
-    let mut cur_input = eat_whitespace(input)
+    let cur_input = eat_whitespace(input)
         .strip_prefix('"')
         .expect("object must start with '\"'");
 
@@ -333,6 +333,19 @@ mod tests {
     }
 
     #[test]
+    fn parse_string_with_valid_unicode_hex() {
+        let json = r#""\u3042""#;
+        let parsed = parse(json);
+        match parsed {
+            Value::String(s) => {
+                assert_eq!(s.len(), 3);
+                assert_eq!(s, "あ".to_string());
+            }
+            _ => panic!("Expected an string, got {:?}", parsed),
+        }
+    }
+
+    #[test]
     fn parse_object_with_one_string_member() {
         let json = r#"{"key": "value"}"#;
         let parsed = parse(json);
@@ -406,6 +419,7 @@ mod tests {
             _ => panic!("Expected a number, got {:?}", parsed),
         }
     }
+
     #[test]
     fn parse_number_with_minus_sign() {
         let json = r#"-10"#;
@@ -417,6 +431,7 @@ mod tests {
             _ => panic!("Expected a number, got {:?}", parsed),
         }
     }
+
     #[test]
     fn parse_number_with_fraction() {
         let json = r#"10.01234"#;
@@ -428,6 +443,7 @@ mod tests {
             _ => panic!("Expected a number, got {:?}", parsed),
         }
     }
+
     #[test]
     fn parse_number_with_exponent() {
         let json = r#"10e3"#;

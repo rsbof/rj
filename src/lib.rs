@@ -43,7 +43,8 @@ fn value(input: &str) -> (Value, &str) {
         return (Value::Array(v.0), v.1); // object will return (HashMap, &str)
     }
     if input.starts_with('"') {
-        return string(input).map(|s| Value::String(s)); // string returns (String, &str), convert to Value::String
+        let v = string(input);
+        return (Value::String(v.0), v.1);
     }
     // For numbers, you'd need a more complex check, e.g., regex or char-by-char
     // For now, let's assume it's a number if it starts with a digit or '-'
@@ -66,36 +67,34 @@ fn eat_whitespace(input: &str) -> &str {
 }
 
 fn object(input: &str) -> (HashMap<String, Value>, &str) {
+    let mut cur_input = eat_whitespace(input)
+        .strip_prefix('{')
+        .expect("object must start with '{'");
+
+    if let Some(rest) = eat_whitespace(cur_input).strip_prefix('}') {
+        return (HashMap::new(), rest);
+    }
+
     let mut obj: HashMap<String, Value> = HashMap::new();
-    let mut cur_input = input;
+    loop {
+        // Parse key
+        let (key, rest) = string(eat_whitespace(cur_input));
+        cur_input = eat_whitespace(rest)
+            .strip_prefix(':')
+            .expect("Expected ':' after object key.");
 
-    if !cur_input.starts_with('{') {
-        panic!("object must start with '{{'.");
-    }
-    cur_input = &cur_input[1..];
+        // Parse value
+        let (val, rest) = value(cur_input);
+        obj.insert(key, val);
 
-    cur_input = eat_whitespace(cur_input);
-    if let Some(rest) = cur_input.strip_prefix('}') {
-        return (obj, rest);
-    }
-
-    // Parse key
-    let (key, rest) = string(cur_input);
-    cur_input = eat_whitespace(rest);
-    if !cur_input.starts_with(':') {
-        panic!("Expected ':' after object key.");
-    }
-    cur_input = eat_whitespace(&cur_input[1..]);
-
-    // Parse value
-    let (val, rest) = value(cur_input);
-    obj.insert(key, val);
-    cur_input = eat_whitespace(rest);
-
-    if cur_input.starts_with(',') || cur_input.starts_with('}') {
-        cur_input = &cur_input[1..];
-    } else {
-        panic!("Expected ',' or '}}' after object value.");
+        if let Some(rest) = eat_whitespace(rest).strip_prefix(',') {
+            cur_input = rest;
+        } else if let Some(rest) = eat_whitespace(rest).strip_prefix('}') {
+            cur_input = rest;
+            break;
+        } else {
+            panic!("Expected ',' or '}}' after object value.");
+        }
     }
 
     (obj, cur_input)
@@ -106,6 +105,14 @@ fn array(input: &str) -> (Vec<Value>, &str) {
 }
 
 fn string(input: &str) -> (String, &str) {
+    let mut cur_input = eat_whitespace(input)
+        .strip_prefix('"')
+        .expect("object must start with '\"'");
+
+    if let Some(rest) = eat_whitespace(cur_input).strip_prefix('"') {
+        return (String::new(), rest);
+    }
+
     let mut chars = input.char_indices(); // Iterator that yields (byte_index, char)
     let mut parsed_string = String::new();
 
@@ -120,53 +127,55 @@ fn string(input: &str) -> (String, &str) {
         );
     }
 
-    // `current_byte_pos` tracks the byte index *after* the character just processed.
-    // It starts after the opening quote.
-    let mut current_byte_pos = start_quote_idx + c.len_utf8();
-
     loop {
-        let Some((char_idx, c)) = chars.next() else {
-            // Reached end of input without finding closing quote
+        let Some((idx, c)) = chars.next() else {
             panic!("Unterminated string: missing closing '\"'.");
         };
-        current_byte_pos = char_idx + c.len_utf8(); // Update position to *after* the current char
+        // `current_byte_pos` tracks the byte index *after* the character just processed.
+        // It starts after the opening quote.
+        let current_byte_pos = idx + c.len_utf8(); // Update position to *after* the current char
 
         match c {
             '"' => {
-                // Found the closing double quote
                 return (parsed_string, &input[current_byte_pos..]);
             }
             '\\' => {
                 // Handle escape sequence
-                let Some((escaped_char_idx, escaped_char)) = chars.next() else {
+                let Some((_, escaped_char)) = chars.next() else {
                     panic!("Invalid escape sequence: '\\' at end of string.");
                 };
-                current_byte_pos = escaped_char_idx + escaped_char.len_utf8(); // Update position after escaped char
 
                 match escaped_char {
-                    '"' => parsed_string.push('"'),
-                    '\\' => parsed_string.push('\\'),
-                    '/' => parsed_string.push('/'),
-                    'b' => parsed_string.push('\x08'), // Backspace
-                    'f' => parsed_string.push('\x0C'), // Form feed
-                    'n' => parsed_string.push('\n'),
-                    'r' => parsed_string.push('\r'),
-                    't' => parsed_string.push('\t'),
+                    '"' => parsed_string.push('"'),    // quotation mark
+                    '\\' => parsed_string.push('\\'),  // reverse solidus
+                    '/' => parsed_string.push('/'),    // solidus
+                    'b' => parsed_string.push('\x08'), // backspace
+                    'f' => parsed_string.push('\x0C'), // form feed
+                    'n' => parsed_string.push('\n'),   // line feed
+                    'r' => parsed_string.push('\r'),   // carriage return
+                    't' => parsed_string.push('\t'),   // tab
                     'u' => {
-                        // Unicode escape \uXXXX
+                        // uXXXX
                         let mut hex_val: u32 = 0;
                         for _ in 0..4 {
-                            let Some((hex_char_idx, hex_c)) = chars.next() else {
-                                panic!(
-                                    "Invalid unicode escape sequence: expected 4 hex digits after '\\u'."
-                                );
-                            };
-                            current_byte_pos = hex_char_idx + hex_c.len_utf8(); // Update position
-
-                            let digit = hex_c
-                                .to_digit(16)
-                                .expect("Invalid hex digit in unicode escape.");
-                            hex_val = (hex_val << 4) | digit;
+                            match chars.next() {
+                                Some((_, '"')) => {
+                                    panic!(
+                                        "Invalid unicode escape sequence: expected 4 hex digits after '\\u'."
+                                    );
+                                }
+                                Some((_, c)) => {
+                                    let digit = c
+                                        .to_digit(16)
+                                        .expect("Invalid hex digit in unicode escape.");
+                                    hex_val = (hex_val << 4) | digit;
+                                }
+                                None => {
+                                    panic!(
+                                        "Invalid unicode escape sequence: expected 4 hex digits after '\\u'."
+                                    );
+                                }
+                            }
                         }
 
                         let unicode_char =
@@ -255,11 +264,11 @@ mod tests {
 
     #[test]
     fn parse_string_with_escapes() {
-        let json = r#""hello \"world\"\\/\b\f\n\r\t\u0041""#;
+        let json = r#""hello \"world\"\\\/\b\f\n\r\t\u0041""#;
         let parsed = parse(json);
         match parsed {
             Value::String(s) => {
-                assert_eq!(s, "hello \"world\"/\\/\x08\x0C\n\r\tA");
+                assert_eq!(s, "hello \"world\"\\/\x08\x0c\x0a\x0d\tA");
             }
             _ => panic!("Expected a string, got {:?}", parsed),
         }
@@ -352,7 +361,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Expected ',' or '}}' after object value.")]
+    #[should_panic(expected = "Expected ',' or '}' after object value.")]
     fn parse_object_missing_comma_or_brace() {
         let json = r#"{"key": "value" "another_key": "another_value"}"#;
         parse(json);

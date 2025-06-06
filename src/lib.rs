@@ -221,9 +221,11 @@ fn string(input: &str) -> (String, &str) {
 }
 
 fn number(input: &str) -> (f64, &str) {
+    // ignore whitespace first
+    let mut cur_input = eat_whitespace(input);
+
     let mut minus = false;
-    let mut cur_input = input;
-    if let Some(rest) = eat_whitespace(input).strip_prefix('-') {
+    if let Some(rest) = cur_input.strip_prefix('-') {
         minus = true;
         cur_input = rest;
     }
@@ -234,7 +236,7 @@ fn number(input: &str) -> (f64, &str) {
             '0'..='9' => buf.push(c),
             '.' => buf.push(c),
             'e' | 'E' => buf.push(c),
-            _ => panic!("invalid input"),
+            _ => break, // the char is not part of number.
         }
     }
 

@@ -84,10 +84,19 @@ fn value(input: &str) -> (Value, &str) {
     panic!("Unexpected token: '{}'", input);
 }
 
+/// whitespace = \x20 \x09 \x0a \x0d
+/// - \x20 space
+/// - \x09 horizontal tab
+/// - \x0a line feed or new line
+/// - \x0d carriage return
+fn is_whitespace(c: char) -> bool {
+    c == '\x20' || c == '\x09' || c == '\x0a' || c == '\x0d'
+}
+
 fn eat_whitespace(input: &str) -> &str {
     let mut pos = 0;
     for c in input.chars() {
-        if !c.is_whitespace() {
+        if !is_whitespace(c) {
             break;
         }
         pos += c.len_utf8(); // Advance by byte length of char

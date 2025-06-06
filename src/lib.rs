@@ -1,6 +1,6 @@
 // Defined in RFC8259 also known as STD90.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -10,6 +10,30 @@ pub enum Value {
     Null,
     Object(HashMap<String, Value>),
     Array(Vec<Value>),
+}
+
+impl Index<&str> for Value {
+    type Output = Value;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        if let Self::Object(obj) = self {
+            &obj[index]
+        } else {
+            panic!("&str index only allowed for Value::Object");
+        }
+    }
+}
+
+impl Index<usize> for Value {
+    type Output = Value;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if let Self::Array(arr) = self {
+            &arr[index]
+        } else {
+            panic!("integer index only allowed for Value::Array");
+        }
+    }
 }
 
 pub fn parse(input: &str) -> Value {
@@ -589,34 +613,21 @@ mod tests {
     }
 }
 "#;
-        let parsed = parse(json);
-        match &parsed {
-            Value::Object(obj) => match &obj["Image"] {
-                Value::Object(obj) => {
-                    assert_eq!(obj["Width"], Value::Number(800.0));
-                    assert_eq!(obj["Height"], Value::Number(600.0));
-                    assert_eq!(
-                        obj["Title"],
-                        Value::String("View from 15th Floor".to_string())
-                    );
-                    match &obj["Thumbnail"] {
-                        Value::Object(obj) => {
-                            assert_eq!(
-                                obj["Url"],
-                                Value::String("http://www.example.com/image/481989943".to_string())
-                            );
-                            assert_eq!(obj["Height"], Value::Number(125.0));
-                            assert_eq!(obj["Width"], Value::Number(100.0));
-                        }
-                        _ => panic!("Expected an object, got {:?}", parsed),
-                    }
-                    assert_eq!(obj["Animated"], Value::Boolean(false));
-                    assert_eq!(obj["Width"], Value::Number(800.0));
-                }
-                _ => panic!("Expected an object, got {:?}", parsed),
-            },
-            _ => panic!("Expected an object, got {:?}", parsed),
-        }
+        let v = parse(json);
+        assert_eq!(v["Image"]["Width"], Value::Number(800.0));
+        assert_eq!(v["Image"]["Height"], Value::Number(600.0));
+        assert_eq!(
+            v["Image"]["Title"],
+            Value::String("View from 15th Floor".to_string())
+        );
+        assert_eq!(
+            v["Image"]["Thumbnail"]["Url"],
+            Value::String("http://www.example.com/image/481989943".to_string())
+        );
+        assert_eq!(v["Image"]["Thumbnail"]["Height"], Value::Number(125.0));
+        assert_eq!(v["Image"]["Thumbnail"]["Width"], Value::Number(100.0));
+        assert_eq!(v["Image"]["Animated"], Value::Boolean(false));
+        assert_eq!(v["Image"]["Width"], Value::Number(800.0));
     }
 
     #[test]
@@ -645,38 +656,22 @@ mod tests {
     }
 ]
 "#;
-        let parsed = parse(json);
-        match &parsed {
-            Value::Array(arr) => {
-                assert_eq!(arr.len(), 2);
-                match &arr[0] {
-                    Value::Object(obj) => {
-                        assert_eq!(obj["precision"], Value::String("zip".to_string()));
-                        assert_eq!(obj["Latitude"], Value::Number(37.7668));
-                        assert_eq!(obj["Longitude"], Value::Number(-122.3959));
-                        assert_eq!(obj["Address"], Value::String("".to_string()));
-                        assert_eq!(obj["City"], Value::String("SAN FRANCISCO".to_string()));
-                        assert_eq!(obj["State"], Value::String("CA".to_string()));
-                        assert_eq!(obj["Zip"], Value::String("94107".to_string()));
-                        assert_eq!(obj["Country"], Value::String("US".to_string()));
-                    }
-                    _ => panic!("Expected an object, got {:?}", parsed),
-                };
-                match &arr[1] {
-                    Value::Object(obj) => {
-                        assert_eq!(obj["precision"], Value::String("zip".to_string()));
-                        assert_eq!(obj["Latitude"], Value::Number(37.371991));
-                        assert_eq!(obj["Longitude"], Value::Number(-122.026020));
-                        assert_eq!(obj["Address"], Value::String("".to_string()));
-                        assert_eq!(obj["City"], Value::String("SUNNYVALE".to_string()));
-                        assert_eq!(obj["State"], Value::String("CA".to_string()));
-                        assert_eq!(obj["Zip"], Value::String("94085".to_string()));
-                        assert_eq!(obj["Country"], Value::String("US".to_string()));
-                    }
-                    _ => panic!("Expected an object, got {:?}", parsed),
-                };
-            }
-            _ => panic!("Expected an array, got {:?}", parsed),
-        }
+        let v = parse(json);
+        assert_eq!(v[0]["precision"], Value::String("zip".to_string()));
+        assert_eq!(v[0]["Latitude"], Value::Number(37.7668));
+        assert_eq!(v[0]["Longitude"], Value::Number(-122.3959));
+        assert_eq!(v[0]["Address"], Value::String("".to_string()));
+        assert_eq!(v[0]["City"], Value::String("SAN FRANCISCO".to_string()));
+        assert_eq!(v[0]["State"], Value::String("CA".to_string()));
+        assert_eq!(v[0]["Zip"], Value::String("94107".to_string()));
+        assert_eq!(v[0]["Country"], Value::String("US".to_string()));
+        assert_eq!(v[1]["precision"], Value::String("zip".to_string()));
+        assert_eq!(v[1]["Latitude"], Value::Number(37.371991));
+        assert_eq!(v[1]["Longitude"], Value::Number(-122.026020));
+        assert_eq!(v[1]["Address"], Value::String("".to_string()));
+        assert_eq!(v[1]["City"], Value::String("SUNNYVALE".to_string()));
+        assert_eq!(v[1]["State"], Value::String("CA".to_string()));
+        assert_eq!(v[1]["Zip"], Value::String("94085".to_string()));
+        assert_eq!(v[1]["Country"], Value::String("US".to_string()));
     }
 }

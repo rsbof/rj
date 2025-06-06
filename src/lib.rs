@@ -46,10 +46,9 @@ fn value(input: &str) -> (Value, &str) {
         let v = string(input);
         return (Value::String(v.0), v.1);
     }
-    // For numbers, you'd need a more complex check, e.g., regex or char-by-char
-    // For now, let's assume it's a number if it starts with a digit or '-'
-    if input.starts_with('-') || input.chars().next().map_or(false, |c| c.is_ascii_digit()) {
-        return number(input).map(|n| Value::Number(n)); // number returns (f64, &str), convert to Value::Number
+    if input.starts_with('-') || input.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        let v = number(input);
+        return (Value::Number(v.0), v.1);
     }
 
     panic!("Unexpected token: '{}'", input); // If nothing matches
@@ -198,24 +197,30 @@ fn string(input: &str) -> (String, &str) {
     }
 }
 
-// Helper trait to allow .map() on tuples, making value() cleaner
-trait MapTuple<T, U, V> {
-    fn map<F>(self, f: F) -> (V, U)
-    where
-        F: FnOnce(T) -> V;
-}
-
-impl<T, U> MapTuple<T, U, Value> for (T, U) {
-    fn map<F>(self, f: F) -> (Value, U)
-    where
-        F: FnOnce(T) -> Value,
-    {
-        (f(self.0), self.1)
-    }
-}
-
 fn number(input: &str) -> (f64, &str) {
-    unimplemented!();
+    let mut minus = false;
+    let mut cur_input = input;
+    if let Some(rest) = eat_whitespace(input).strip_prefix('-') {
+        minus = true;
+        cur_input = rest;
+    }
+
+    let mut buf = String::new();
+    for c in cur_input.chars() {
+        match c {
+            '0'..='9' => buf.push(c),
+            '.' => buf.push(c),
+            'e' | 'E' => buf.push(c),
+            _ => panic!("invalid input"),
+        }
+    }
+
+    cur_input = cur_input.strip_prefix(&buf).unwrap();
+    if minus {
+        (buf.parse::<f64>().unwrap() * -1.0, cur_input)
+    } else {
+        (buf.parse().unwrap(), cur_input)
+    }
 }
 
 pub fn add(left: u64, right: u64) -> u64 {
@@ -365,5 +370,50 @@ mod tests {
     fn parse_object_missing_comma_or_brace() {
         let json = r#"{"key": "value" "another_key": "another_value"}"#;
         parse(json);
+    }
+
+    #[test]
+    fn parse_number() {
+        let json = r#"10"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, 10.0)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+    #[test]
+    fn parse_number_with_minus_sign() {
+        let json = r#"-10"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, -10.0)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+    #[test]
+    fn parse_number_with_fraction() {
+        let json = r#"10.01234"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, 10.01234)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+    #[test]
+    fn parse_number_with_exponent() {
+        let json = r#"10e3"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, 10000.0)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
     }
 }

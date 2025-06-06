@@ -100,7 +100,30 @@ fn object(input: &str) -> (HashMap<String, Value>, &str) {
 }
 
 fn array(input: &str) -> (Vec<Value>, &str) {
-    unimplemented!();
+    let mut cur_input = eat_whitespace(input)
+        .strip_prefix('[')
+        .expect("array must start with '['");
+
+    if let Some(rest) = eat_whitespace(cur_input).strip_prefix(']') {
+        return (Vec::new(), rest);
+    }
+
+    let mut values: Vec<Value> = Vec::new();
+    let (v, rest) = value(cur_input);
+    values.push(v);
+    cur_input = rest;
+
+    while let Some(rest) = eat_whitespace(cur_input).strip_prefix(',') {
+        let (v, rest) = value(rest);
+        values.push(v);
+        cur_input = rest;
+    }
+
+    cur_input = eat_whitespace(cur_input)
+        .strip_prefix(']')
+        .expect("array must end with ']'");
+
+    (values, cur_input)
 }
 
 fn string(input: &str) -> (String, &str) {
@@ -414,6 +437,85 @@ mod tests {
                 assert_eq!(n, 10000.0)
             }
             _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_empty() {
+        let json = r#"[]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(arr, vec![]),
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_single_object() {
+        let json = r#"[{"key1": true}]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(
+                arr,
+                vec![Value::Object(HashMap::from([(
+                    "key1".to_string(),
+                    Value::Boolean(true)
+                )]))]
+            ),
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_multiple_objects() {
+        let json = r#"[{"key1": true}, {"key1": true}]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(
+                arr,
+                vec![
+                    Value::Object(HashMap::from([("key1".to_string(), Value::Boolean(true))])),
+                    Value::Object(HashMap::from([("key1".to_string(), Value::Boolean(true))])),
+                ]
+            ),
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_single_array() {
+        let json = r#"[[]]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(arr, vec![Value::Array(vec![])]),
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_multiple_arrays() {
+        let json = r#"[[],[],[]]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(
+                arr,
+                vec![
+                    Value::Array(vec![]),
+                    Value::Array(vec![]),
+                    Value::Array(vec![]),
+                ]
+            ),
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_array_with_nested_arrays() {
+        let json = r#"[[[]]]"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Array(arr) => assert_eq!(arr, vec![Value::Array(vec![Value::Array(vec![])]),]),
+            _ => panic!("Expected an array, got {:?}", parsed),
         }
     }
 }

@@ -536,4 +536,113 @@ mod tests {
             _ => panic!("Expected an array, got {:?}", parsed),
         }
     }
+
+    #[test]
+    fn parse_example1_in_rfc8259() {
+        let json = r#"
+{
+    "Image": {
+        "Width":  800,
+        "Height": 600,
+        "Title":  "View from 15th Floor",
+        "Thumbnail": {
+            "Url":    "http://www.example.com/image/481989943",
+            "Height": 125,
+            "Width":  100
+        },
+        "Animated" : false,
+        "IDs": [116, 943, 234, 38793]
+    }
+}
+"#;
+        let parsed = parse(json);
+        match &parsed {
+            Value::Object(obj) => match &obj["Image"] {
+                Value::Object(obj) => {
+                    assert_eq!(obj["Width"], Value::Number(800.0));
+                    assert_eq!(obj["Height"], Value::Number(600.0));
+                    assert_eq!(
+                        obj["Title"],
+                        Value::String("View from 15th Floor".to_string())
+                    );
+                    match &obj["Thumbnail"] {
+                        Value::Object(obj) => {
+                            assert_eq!(
+                                obj["Url"],
+                                Value::String("http://www.example.com/image/481989943".to_string())
+                            );
+                            assert_eq!(obj["Height"], Value::Number(125.0));
+                            assert_eq!(obj["Width"], Value::Number(100.0));
+                        }
+                        _ => panic!("Expected an object, got {:?}", parsed),
+                    }
+                    assert_eq!(obj["Animated"], Value::Boolean(false));
+                    assert_eq!(obj["Width"], Value::Number(800.0));
+                }
+                _ => panic!("Expected an object, got {:?}", parsed),
+            },
+            _ => panic!("Expected an object, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_example2_in_rfc8259() {
+        let json = r#"
+[
+    {
+        "precision": "zip",
+        "Latitude":  37.7668,
+        "Longitude": -122.3959,
+        "Address":   "",
+        "City":      "SAN FRANCISCO",
+        "State":     "CA",
+        "Zip":       "94107",
+        "Country":   "US"
+    },
+    {
+        "precision": "zip",
+        "Latitude":  37.371991,
+        "Longitude": -122.026020,
+        "Address":   "",
+        "City":      "SUNNYVALE",
+        "State":     "CA",
+        "Zip":       "94085",
+        "Country":   "US"
+    }
+]
+"#;
+        let parsed = parse(json);
+        match &parsed {
+            Value::Array(arr) => {
+                assert_eq!(arr.len(), 2);
+                match &arr[0] {
+                    Value::Object(obj) => {
+                        assert_eq!(obj["precision"], Value::String("zip".to_string()));
+                        assert_eq!(obj["Latitude"], Value::Number(37.7668));
+                        assert_eq!(obj["Longitude"], Value::Number(-122.3959));
+                        assert_eq!(obj["Address"], Value::String("".to_string()));
+                        assert_eq!(obj["City"], Value::String("SAN FRANCISCO".to_string()));
+                        assert_eq!(obj["State"], Value::String("CA".to_string()));
+                        assert_eq!(obj["Zip"], Value::String("94107".to_string()));
+                        assert_eq!(obj["Country"], Value::String("US".to_string()));
+                    }
+                    _ => panic!("Expected an object, got {:?}", parsed),
+                };
+                match &arr[1] {
+                    Value::Object(obj) => {
+                        assert_eq!(obj["precision"], Value::String("zip".to_string()));
+                        assert_eq!(obj["Latitude"], Value::Number(37.371991));
+                        assert_eq!(obj["Longitude"], Value::Number(-122.026020));
+                        assert_eq!(obj["Address"], Value::String("".to_string()));
+                        assert_eq!(obj["City"], Value::String("SUNNYVALE".to_string()));
+                        assert_eq!(obj["State"], Value::String("CA".to_string()));
+                        assert_eq!(obj["Zip"], Value::String("94085".to_string()));
+                        assert_eq!(obj["Country"], Value::String("US".to_string()));
+                    }
+                    _ => panic!("Expected an object, got {:?}", parsed),
+                };
+            }
+            _ => panic!("Expected an array, got {:?}", parsed),
+        }
+    }
 }

@@ -1,5 +1,7 @@
 // Defined in RFC8259 also known as STD90.
 
+mod generate;
+
 use std::{collections::HashMap, ops::Index};
 
 #[derive(Debug, PartialEq)]
@@ -50,6 +52,10 @@ pub fn parse(input: &str) -> Value {
         panic!("Unexpected characters after JSON value: '{}'", rest);
     }
     v
+}
+
+pub fn stringify(value: &Value) -> String {
+    generate::generate(value)
 }
 
 fn value(input: &str) -> (Value, &str) {

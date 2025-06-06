@@ -231,11 +231,25 @@ fn number(input: &str) -> (f64, &str) {
     }
 
     let mut buf = String::new();
+    let mut enable_sign = false;
     for c in cur_input.chars() {
         match c {
             '0'..='9' => buf.push(c),
             '.' => buf.push(c),
-            'e' | 'E' => buf.push(c),
+            'e' | 'E' => {
+                enable_sign = true;
+                buf.push(c);
+            }
+            '-' | '+' => {
+                if enable_sign {
+                    buf.push(c);
+                    enable_sign = false;
+                } else {
+                    panic!(
+                        "sign only allowed at the beginning of the number or immediately after 'e' or 'E' for exponents"
+                    );
+                }
+            }
             _ => break, // the char is not part of number.
         }
     }
@@ -445,6 +459,30 @@ mod tests {
     #[test]
     fn parse_number_with_exponent() {
         let json = r#"10e3"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, 10000.0)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_number_with_minus_exponent() {
+        let json = r#"10e-3"#;
+        let parsed = parse(json);
+        match parsed {
+            Value::Number(n) => {
+                assert_eq!(n, 0.01)
+            }
+            _ => panic!("Expected a number, got {:?}", parsed),
+        }
+    }
+
+    #[test]
+    fn parse_number_with_plus_exponent() {
+        let json = r#"10e+3"#;
         let parsed = parse(json);
         match parsed {
             Value::Number(n) => {

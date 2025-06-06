@@ -36,6 +36,12 @@ impl Index<usize> for Value {
     }
 }
 
+impl From<&str> for Value {
+    fn from(value: &str) -> Self {
+        parse(value)
+    }
+}
+
 pub fn parse(input: &str) -> Value {
     let (v, rest) = value(input);
     // After parsing the top-level value, there should ideally be only whitespace left.
@@ -614,20 +620,17 @@ mod tests {
 }
 "#;
         let v = parse(json);
-        assert_eq!(v["Image"]["Width"], Value::Number(800.0));
-        assert_eq!(v["Image"]["Height"], Value::Number(600.0));
-        assert_eq!(
-            v["Image"]["Title"],
-            Value::String("View from 15th Floor".to_string())
-        );
+        assert_eq!(v["Image"]["Width"], "800.0".into());
+        assert_eq!(v["Image"]["Height"], "600.0".into());
+        assert_eq!(v["Image"]["Title"], r#""View from 15th Floor""#.into());
         assert_eq!(
             v["Image"]["Thumbnail"]["Url"],
-            Value::String("http://www.example.com/image/481989943".to_string())
+            r#""http://www.example.com/image/481989943""#.into()
         );
-        assert_eq!(v["Image"]["Thumbnail"]["Height"], Value::Number(125.0));
-        assert_eq!(v["Image"]["Thumbnail"]["Width"], Value::Number(100.0));
-        assert_eq!(v["Image"]["Animated"], Value::Boolean(false));
-        assert_eq!(v["Image"]["Width"], Value::Number(800.0));
+        assert_eq!(v["Image"]["Thumbnail"]["Height"], "125.0".into());
+        assert_eq!(v["Image"]["Thumbnail"]["Width"], "100.0".into());
+        assert_eq!(v["Image"]["Animated"], "false".into());
+        assert_eq!(v["Image"]["IDs"], "[116,943,234,38793]".into());
     }
 
     #[test]
@@ -657,21 +660,21 @@ mod tests {
 ]
 "#;
         let v = parse(json);
-        assert_eq!(v[0]["precision"], Value::String("zip".to_string()));
-        assert_eq!(v[0]["Latitude"], Value::Number(37.7668));
-        assert_eq!(v[0]["Longitude"], Value::Number(-122.3959));
-        assert_eq!(v[0]["Address"], Value::String("".to_string()));
-        assert_eq!(v[0]["City"], Value::String("SAN FRANCISCO".to_string()));
-        assert_eq!(v[0]["State"], Value::String("CA".to_string()));
-        assert_eq!(v[0]["Zip"], Value::String("94107".to_string()));
-        assert_eq!(v[0]["Country"], Value::String("US".to_string()));
-        assert_eq!(v[1]["precision"], Value::String("zip".to_string()));
-        assert_eq!(v[1]["Latitude"], Value::Number(37.371991));
-        assert_eq!(v[1]["Longitude"], Value::Number(-122.026020));
-        assert_eq!(v[1]["Address"], Value::String("".to_string()));
-        assert_eq!(v[1]["City"], Value::String("SUNNYVALE".to_string()));
-        assert_eq!(v[1]["State"], Value::String("CA".to_string()));
-        assert_eq!(v[1]["Zip"], Value::String("94085".to_string()));
-        assert_eq!(v[1]["Country"], Value::String("US".to_string()));
+        assert_eq!(v[0]["precision"], r#""zip""#.into());
+        assert_eq!(v[0]["Latitude"], "37.7668".into());
+        assert_eq!(v[0]["Longitude"], "-122.3959".into());
+        assert_eq!(v[0]["Address"], r#""""#.into());
+        assert_eq!(v[0]["City"], r#""SAN FRANCISCO""#.into());
+        assert_eq!(v[0]["State"], r#""CA""#.into());
+        assert_eq!(v[0]["Zip"], r#""94107""#.into());
+        assert_eq!(v[0]["Country"], r#""US""#.into());
+        assert_eq!(v[1]["precision"], r#""zip""#.into());
+        assert_eq!(v[1]["Latitude"], "37.371991".into());
+        assert_eq!(v[1]["Longitude"], "-122.026020".into());
+        assert_eq!(v[1]["Address"], r#""""#.into());
+        assert_eq!(v[1]["City"], r#""SUNNYVALE""#.into());
+        assert_eq!(v[1]["State"], r#""CA""#.into());
+        assert_eq!(v[1]["Zip"], r#""94085""#.into());
+        assert_eq!(v[1]["Country"], r#""US""#.into());
     }
 }

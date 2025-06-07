@@ -24,11 +24,11 @@ pub(crate) fn generate(value: &Value) -> String {
         Value::Array(arr) => {
             let mut buf = String::new();
             buf.push('[');
+            let mut elements: Vec<String> = Vec::new();
             for v in arr {
-                buf.push_str(generate(v).as_str());
-                buf.push(',');
+                elements.push(generate(v));
             }
-            buf.pop();
+            buf.push_str(&elements.join(","));
             buf.push(']');
             buf
         }

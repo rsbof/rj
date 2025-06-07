@@ -9,12 +9,15 @@ pub(crate) fn generate(value: &Value) -> String {
         Value::Object(obj) => {
             let mut buf = String::new();
             buf.push('{');
+            let mut members: Vec<String> = Vec::new();
             for (k, v) in obj.iter() {
-                buf.push_str(&generate(&Value::String(k.to_string())));
-                buf.push(':');
-                buf.push(' ');
-                buf.push_str(&generate(v));
+                members.push(format!(
+                    "{}:{}",
+                    generate(&Value::String(k.to_string())),
+                    generate(v)
+                ));
             }
+            buf.push_str(&members.join(","));
             buf.push('}');
             buf
         }
@@ -78,7 +81,15 @@ mod generate_tests {
 
     #[test]
     fn object() {
-        let json = r#"{"key": "value"}"#;
+        let json = r#"{"key":"value"}"#;
+        let generated = generate(&json.into());
+        assert_eq!(generated, json);
+    }
+
+    #[test]
+    #[ignore = "order of keys is not guaranteed"]
+    fn object_with_members() {
+        let json = r#"{"key":"value","key2":"value2"}"#;
         let generated = generate(&json.into());
         assert_eq!(generated, json);
     }

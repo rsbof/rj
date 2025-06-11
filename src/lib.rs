@@ -13,3 +13,7 @@ pub fn parse(input: &str) -> Value {
 pub fn stringify(value: &Value) -> String {
     value.to_string()
 }
+
+pub fn format(input: &str) -> String {
+    generate::format(&parse(input), 2)
+}

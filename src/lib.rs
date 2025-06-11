@@ -11,5 +11,5 @@ pub fn parse(input: &str) -> Value {
 }
 
 pub fn stringify(value: &Value) -> String {
-    generate::generate(value)
+    value.to_string()
 }

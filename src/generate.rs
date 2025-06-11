@@ -1,36 +1,34 @@
 use crate::Value;
 
-pub(crate) fn generate(value: &Value) -> String {
-    match value {
-        Value::String(x) => format!("\"{x}\""),
-        Value::Number(x) => x.to_string(),
-        Value::Boolean(x) => x.to_string(),
-        Value::Null => "null".to_string(),
-        Value::Object(obj) => {
-            let mut buf = String::new();
-            buf.push('{');
-            let mut members: Vec<String> = Vec::new();
-            for (k, v) in obj.iter() {
-                members.push(format!(
-                    "{}:{}",
-                    generate(&Value::String(k.to_string())),
-                    generate(v)
-                ));
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::String(x) => write!(f, "\"{x}\""),
+            Value::Number(x) => write!(f, "{x}"),
+            Value::Boolean(x) => write!(f, "{x}"),
+            Value::Null => write!(f, "null"),
+            Value::Object(obj) => {
+                let mut buf = String::new();
+                buf.push('{');
+                let mut members: Vec<String> = Vec::new();
+                for (k, v) in obj.iter() {
+                    members.push(format!("{}:{}", &Value::String(k.to_string()), v));
+                }
+                buf.push_str(&members.join(","));
+                buf.push('}');
+                write!(f, "{buf}")
             }
-            buf.push_str(&members.join(","));
-            buf.push('}');
-            buf
-        }
-        Value::Array(arr) => {
-            let mut buf = String::new();
-            buf.push('[');
-            let mut elements: Vec<String> = Vec::new();
-            for v in arr {
-                elements.push(generate(v));
+            Value::Array(arr) => {
+                let mut buf = String::new();
+                buf.push('[');
+                let mut elements: Vec<String> = Vec::new();
+                for v in arr {
+                    elements.push(v.to_string());
+                }
+                buf.push_str(&elements.join(","));
+                buf.push(']');
+                write!(f, "{buf}")
             }
-            buf.push_str(&elements.join(","));
-            buf.push(']');
-            buf
         }
     }
 }
@@ -42,55 +40,54 @@ mod generate_tests {
     #[test]
     fn string() {
         let json = r#""string""#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     fn number() {
-        let v = Value::Number(10.1234);
         let json = "10.1234";
-        let generated = generate(&v);
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     fn boolean() {
         let json = r#"false"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
 
         let json = r#"true"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     fn null() {
         let json = r#"null"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     fn array() {
         let json = r#"["string","string2"]"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     fn object() {
         let json = r#"{"key":"value"}"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 
     #[test]
     #[ignore = "order of keys is not guaranteed"]
     fn object_with_members() {
         let json = r#"{"key":"value","key2":"value2"}"#;
-        let generated = generate(&json.into());
-        assert_eq!(generated, json);
+        let s = Value::from(json).to_string();
+        assert_eq!(s, json);
     }
 }

@@ -45,10 +45,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rj"
-version = "0.1.0"
-
-[[package]]
 name = "rj-wasm"
 version = "0.1.0"
 dependencies = [

@@ -6,6 +6,12 @@ extern "C" {
 }
 
 #[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+pub fn format(input: &str) -> String {
+    rj::format(input)
+}
+
+#[wasm_bindgen]
+pub fn parse(input: &str) -> String {
+    let parsed = rj::parse(input);
+    format!("{:#?}", parsed)
 }

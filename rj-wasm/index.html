@@ -3,13 +3,64 @@
   <head>
     <meta charset="utf-8" />
     <title>rj-wasm example</title>
+    <style>
+      .mode {
+        width: 100%;
+        text-align: center;
+      }
+      .box {
+        display: flex;
+        justify-content: space-evenly;
+        width: 100%;
+      }
+
+      .box > textarea {
+        height: 800px;
+        width: 40%;
+        resize: none;
+      }
+    </style>
   </head>
   <body>
+    <div class="mode">
+      <button id="rust-type">rust-type</button>
+      <button id="format">format</button>
+    </div>
+    <div class="box">
+      <textarea id="in"></textarea>
+      <textarea id="out"></textarea>
+    </div>
     <script type="module">
-      import init, { greet } from "./pkg/rj_wasm.js";
+      import init, { format, parse } from "./pkg/rj_wasm.js";
 
       init().then(() => {
-        greet("WebAssembly");
+        const input = document.querySelector('#in');
+        const out = document.querySelector('#out');
+        let cur_mode = 'rust-type';
+
+        input.addEventListener('keyup', (e) => {
+          switch(cur_mode) {
+            case 'rust-type':
+              out.value = parse(e.target.value);
+              break;
+            case 'format':
+              out.value = format(e.target.value);
+              break;
+          }
+        });
+
+        document.querySelector('#rust-type').addEventListener('click', (e) => {
+          cur_mode = 'rust-type'
+          const parsed = parse(input.value);
+          out.value = parsed;
+        });
+
+        document.querySelector('#format').addEventListener('click', (e) => {
+          cur_mode = 'format'
+          const formatted = format(input.value);
+          out.value = formatted;
+        });
+
       });
     </script>
   </body>

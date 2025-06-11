@@ -40,6 +40,9 @@ pub(crate) fn format(value: &Value, indent: usize) -> String {
         Value::Boolean(x) => x.to_string(),
         Value::Null => "null".to_string(),
         Value::Object(obj) => {
+            if obj.is_empty() {
+                return "{}".to_string();
+            }
             let mut buf = String::new();
             buf.push_str("{\n");
             buf.push_str(&" ".repeat(indent));
@@ -58,6 +61,9 @@ pub(crate) fn format(value: &Value, indent: usize) -> String {
             buf
         }
         Value::Array(arr) => {
+            if arr.is_empty() {
+                return "[]".to_string();
+            }
             let mut buf = String::new();
             buf.push('[');
             buf.push('\n');
@@ -158,6 +164,20 @@ mod format_tests {
     }
 
     #[test]
+    fn test_empty_object() {
+        let json = r#"{}"#;
+        let formatted = format(&json.into(), 2);
+        assert_eq!(formatted, "{}");
+    }
+
+    #[test]
+    fn test_nested_empty_object() {
+        let json = r#"{"key": {}}"#;
+        let formatted = format(&json.into(), 2);
+        assert_eq!(formatted, "{\n  \"key\": {}\n}");
+    }
+
+    #[test]
     fn test_array() {
         let json = r#"[1,2,3]"#;
         let formatted = format(&json.into(), 2);
@@ -172,5 +192,19 @@ mod format_tests {
             formatted,
             "[\n  1,\n  [\n    2,\n    [\n      3\n    ]\n  ]\n]"
         );
+    }
+
+    #[test]
+    fn test_empty_array() {
+        let json = r#"[]"#;
+        let formatted = format(&json.into(), 2);
+        assert_eq!(formatted, "[]");
+    }
+
+    #[test]
+    fn test_nested_empty_array() {
+        let json = r#"[[],[[]]]"#;
+        let formatted = format(&json.into(), 2);
+        assert_eq!(formatted, "[\n  [],\n  [\n    []\n  ]\n]");
     }
 }

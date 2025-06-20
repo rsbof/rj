@@ -1,5 +1,7 @@
-use std::ops::Index;
 use indexmap::IndexMap;
+use std::{ops::Index, str::FromStr};
+
+use crate::parse;
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -37,6 +39,14 @@ impl Index<usize> for Value {
 
 impl From<&str> for Value {
     fn from(value: &str) -> Self {
-        crate::parse(value)
+        crate::parse(value).unwrap()
+    }
+}
+
+impl FromStr for Value {
+    type Err = parse::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        crate::parse(s)
     }
 }

@@ -6,7 +6,7 @@ mod generate;
 mod parse;
 mod value;
 
-pub fn parse(input: &str) -> Value {
+pub fn parse(input: &str) -> Result<Value, parse::Error> {
     parse::parse(input)
 }
 
@@ -14,6 +14,6 @@ pub fn stringify(value: &Value) -> String {
     value.to_string()
 }
 
-pub fn format(input: &str) -> String {
-    generate::format(&parse(input), 2)
+pub fn format(input: &str) -> Result<String, parse::Error> {
+    Ok(generate::format(&parse(input)?, 2))
 }

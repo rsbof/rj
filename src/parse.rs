@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 use crate::Value;
 
@@ -64,16 +64,16 @@ fn eat_whitespace(input: &str) -> &str {
     &input[pos..]
 }
 
-fn object(input: &str) -> (HashMap<String, Value>, &str) {
+fn object(input: &str) -> (IndexMap<String, Value>, &str) {
     let mut cur_input = eat_whitespace(input)
         .strip_prefix('{')
         .expect("object must start with '{'");
 
     if let Some(rest) = eat_whitespace(cur_input).strip_prefix('}') {
-        return (HashMap::new(), rest);
+        return (IndexMap::new(), rest);
     }
 
-    let mut obj: HashMap<String, Value> = HashMap::new();
+    let mut obj: IndexMap<String, Value> = IndexMap::new();
     loop {
         // Parse key
         let (key, rest) = string(eat_whitespace(cur_input));
@@ -264,6 +264,7 @@ fn number(input: &str) -> (f64, &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use indexmap::IndexMap;
 
     #[test]
     fn parse_empty_object() {
@@ -508,7 +509,7 @@ mod tests {
         match parsed {
             Value::Array(arr) => assert_eq!(
                 arr,
-                vec![Value::Object(HashMap::from([(
+                vec![Value::Object(IndexMap::from([(
                     "key1".to_string(),
                     Value::Boolean(true)
                 )]))]
@@ -525,8 +526,8 @@ mod tests {
             Value::Array(arr) => assert_eq!(
                 arr,
                 vec![
-                    Value::Object(HashMap::from([("key1".to_string(), Value::Boolean(true))])),
-                    Value::Object(HashMap::from([("key1".to_string(), Value::Boolean(true))])),
+                    Value::Object(IndexMap::from([("key1".to_string(), Value::Boolean(true))])),
+                    Value::Object(IndexMap::from([("key1".to_string(), Value::Boolean(true))])),
                 ]
             ),
             _ => panic!("Expected an array, got {:?}", parsed),

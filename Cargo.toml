@@ -10,3 +10,4 @@ members = [
 ]
 
 [dependencies]
+indexmap = "2.9.0"

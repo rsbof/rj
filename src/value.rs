@@ -1,4 +1,5 @@
-use std::{collections::HashMap, ops::Index};
+use std::ops::Index;
+use indexmap::IndexMap;
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -6,7 +7,7 @@ pub enum Value {
     Number(f64),
     Boolean(bool),
     Null,
-    Object(HashMap<String, Value>),
+    Object(IndexMap<String, Value>),
     Array(Vec<Value>),
 }
 

@@ -134,7 +134,6 @@ mod generate_tests {
     }
 
     #[test]
-    #[ignore = "order of keys is not guaranteed"]
     fn object_with_members() {
         let json = r#"{"key":"value","key2":"value2"}"#;
         let s = Value::from(json).to_string();

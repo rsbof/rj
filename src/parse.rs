@@ -96,7 +96,7 @@ fn eat_whitespace(input: &str) -> &str {
     &input[pos..]
 }
 
-fn expect<'a>(input: &'a str, expected_char: char) -> Result<&'a str> {
+fn expect(input: &str, expected_char: char) -> Result<&str> {
     eat_whitespace(input)
         .strip_prefix(expected_char)
         .ok_or_else(|| Error::MissingExpectedChar(expected_char, input.to_string()))

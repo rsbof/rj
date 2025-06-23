@@ -83,10 +83,14 @@ fn eat_whitespace(input: &str) -> &str {
     &input[pos..]
 }
 
+fn expect<'a>(input: &'a str, expected_char: char) -> Result<&'a str> {
+    eat_whitespace(input)
+        .strip_prefix(expected_char)
+        .ok_or_else(|| Error::MissingExpectedChar(expected_char, input.to_string()))
+}
+
 fn object(input: &str) -> Result<ValueAndRest> {
-    let mut cur_input = eat_whitespace(input)
-        .strip_prefix('{')
-        .ok_or_else(|| Error::MissingExpectedChar('{', input.to_string()))?;
+    let mut cur_input = expect(input, '{')?;
 
     if let Some(rest) = eat_whitespace(cur_input).strip_prefix('}') {
         return Ok((Value::Object(IndexMap::new()), rest));
@@ -101,9 +105,7 @@ fn object(input: &str) -> Result<ValueAndRest> {
             _ => unreachable!("string() should always return Value::String"),
         };
 
-        cur_input = eat_whitespace(rest)
-            .strip_prefix(':')
-            .ok_or_else(|| Error::MissingExpectedChar(':', rest.to_string()))?;
+        cur_input = expect(rest, ':')?;
 
         // Parse value
         let (v, rest) = value(cur_input)?;
@@ -126,9 +128,7 @@ fn object(input: &str) -> Result<ValueAndRest> {
 }
 
 fn array(input: &str) -> Result<ValueAndRest> {
-    let mut cur_input = eat_whitespace(input)
-        .strip_prefix('[')
-        .ok_or_else(|| Error::MissingExpectedChar('[', input.to_string()))?;
+    let mut cur_input = expect(input, '[')?;
 
     if let Some(rest) = eat_whitespace(cur_input).strip_prefix(']') {
         return Ok((Value::Array(Vec::new()), rest));
@@ -145,17 +145,13 @@ fn array(input: &str) -> Result<ValueAndRest> {
         cur_input = rest;
     }
 
-    cur_input = eat_whitespace(cur_input)
-        .strip_prefix(']')
-        .ok_or_else(|| Error::MissingExpectedChar(']', cur_input.to_string()))?;
+    cur_input = expect(cur_input, ']')?;
 
     Ok((Value::Array(values), cur_input))
 }
 
 fn string(input: &str) -> Result<ValueAndRest> {
-    let cur_input = eat_whitespace(input)
-        .strip_prefix('"')
-        .ok_or_else(|| Error::MissingExpectedChar('"', input.to_string()))?;
+    let cur_input = expect(input, '"')?;
 
     if let Some(rest) = eat_whitespace(cur_input).strip_prefix('"') {
         return Ok((Value::String(String::new()), rest));

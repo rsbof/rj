@@ -1,6 +1,6 @@
 use std::io::{Read, stdin};
 
-fn main() {
+fn main() -> rj::parse::Result<()> {
     #[rustfmt::skip]
     let cmd = clap::Command::new("rj")
         .arg(clap::Arg::new("json"))
@@ -21,10 +21,12 @@ fn main() {
             String::from_utf8_lossy(&buf).to_string()
         });
     if m.get_flag("pretty") {
-        let formatted = rj::format(&json);
+        let formatted = rj::format(&json)?;
         println!("{formatted}");
     } else {
-        let parsed = rj::parse(&json);
+        let parsed = rj::parse(&json)?;
         println!("{:#?}", parsed);
     }
+
+    Ok(())
 }

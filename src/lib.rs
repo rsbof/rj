@@ -3,7 +3,7 @@
 use value::Value;
 
 mod generate;
-mod parse;
+pub mod parse;
 mod value;
 
 pub fn parse(input: &str) -> Result<Value, parse::Error> {

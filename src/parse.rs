@@ -16,14 +16,30 @@ pub enum Error {
     TrailingCharacters(String),
 }
 
+impl std::error::Error for Error {}
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::UnexpectedToken(s) => write!(f, "Unexpected token: '{}'", s),
+            Error::MissingExpectedChar(c, s) => {
+                write!(f, "Missing expected character '{}'. Found: '{}'", c, s)
+            }
+            Error::UnterminatedString => write!(f, "Unterminated string"),
+            Error::InvalidEscapeSequence(s) => write!(f, "Invalid escape sequence: '{}'", s),
+            Error::InvalidUnicodeEscape => write!(f, "Invalid Unicode escape sequence"),
+            Error::InvalidNumberFormat(s) => write!(f, "Invalid number format: '{}'", s),
+            Error::TrailingCharacters(s) => {
+                write!(f, "Trailing characters after JSON value: '{}'", s)
+            }
+        }
+    }
+}
+
 pub(crate) fn parse(input: &str) -> Result<Value> {
     let (v, rest) = value(input)?;
     let rest = eat_whitespace(rest);
     if !rest.is_empty() {
-        return Err(Error::TrailingCharacters(format!(
-            "Unexpected characters after JSON value: '{}'",
-            rest
-        )));
+        return Err(Error::TrailingCharacters(rest.to_string()));
     }
     Ok(v)
 }
@@ -57,10 +73,7 @@ fn value(input: &str) -> Result<ValueAndRest> {
         return Ok((v, rest));
     }
 
-    Err(Error::UnexpectedToken(format!(
-        "Unexpected token: '{}'",
-        input
-    )))
+    Err(Error::UnexpectedToken(input.to_string()))
 }
 
 /// whitespace = \x20 \x09 \x0a \x0d
@@ -117,10 +130,7 @@ fn object(input: &str) -> Result<ValueAndRest> {
             cur_input = rest;
             break;
         } else {
-            return Err(Error::UnexpectedToken(format!(
-                "Expected ',' or '}}' after object value. Found: '{}'",
-                rest
-            )));
+            return Err(Error::UnexpectedToken(rest.to_string()));
         }
     }
 
@@ -178,9 +188,7 @@ fn string(input: &str) -> Result<ValueAndRest> {
             }
             '\\' => {
                 let Some((_, escaped_char)) = chars.next() else {
-                    return Err(Error::InvalidEscapeSequence(
-                        "Invalid escape sequence: '\\' at end of string.".to_string(),
-                    ));
+                    return Err(Error::InvalidEscapeSequence("\\".to_string()));
                 };
 
                 match escaped_char {
@@ -212,18 +220,12 @@ fn string(input: &str) -> Result<ValueAndRest> {
                         parsed_string.push(unicode_char);
                     }
                     _ => {
-                        return Err(Error::InvalidEscapeSequence(format!(
-                            "Invalid escape sequence: '\\{}'",
-                            escaped_char
-                        )));
+                        return Err(Error::InvalidEscapeSequence(format!("\\{}", escaped_char)));
                     }
                 }
             }
             _ if c == '\n' || c == '\r' || c == '\t' => {
-                return Err(Error::UnexpectedToken(format!(
-                    "Unescaped control character in string: '{}'",
-                    c
-                )));
+                return Err(Error::UnexpectedToken(c.to_string()));
             }
             _ => {
                 parsed_string.push(c);
@@ -337,10 +339,7 @@ mod tests {
     fn parse_string_with_invalid_escape() {
         let json = r#""hello\x""#;
         let err = parse(json).unwrap_err();
-        assert_eq!(
-            err,
-            Error::InvalidEscapeSequence("Invalid escape sequence: '\\x'".to_string())
-        );
+        assert_eq!(err, Error::InvalidEscapeSequence("\\x".to_string()));
     }
 
     #[test]
@@ -418,9 +417,7 @@ mod tests {
         let err = parse(json).unwrap_err();
         assert_eq!(
             err,
-            Error::TrailingCharacters(
-                "Unexpected characters after JSON value: 'extra'".to_string()
-            )
+            Error::TrailingCharacters("extra".to_string())
         );
     }
 
@@ -441,8 +438,7 @@ mod tests {
         assert_eq!(
             err,
             Error::UnexpectedToken(
-                "Expected ',' or '}' after object value. Found: ' \"another_key\": \"another_value\"}'"
-                    .to_string()
+                " \"another_key\": \"another_value\"}".to_string()
             )
         );
     }
